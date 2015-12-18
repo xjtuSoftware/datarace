@@ -236,8 +236,9 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 			//handle fptosi and fptoui
 //			std::cerr << "handle fptosi \n";
 //			ele.get()->dump();
-#if INT_ARITHMETIC
 			try {
+#if INT_ARITHMETIC
+
 			z3::expr temp = z3::to_expr(z3_ctx, Z3_mk_real2int(z3_ctx, src));
 
 #else
@@ -293,11 +294,7 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 						z3::to_expr(z3_ctx, Z3_mk_extract(z3_ctx, 0, 0, src)),
 						z3_ctx.bv_val(1, BIT_WIDTH), z3_ctx.bv_val(0, BIT_WIDTH));
 #endif
-//				if (Z3_TRUE == Z3_algebraic_is_zero(z3_ctx, src)) {
-//					res = z3_ctx.bool_val(false);
-//				} else {
-//					res = z3_ctx.bool_val(true);
-//				}
+
 			} else {
 				res = src;
 			}
@@ -343,8 +340,8 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 //			} else {
 		z3::expr src = eachExprToZ3(ce->src);
 		if (ce->isFloat && !ce->src.get()->isFloat) {
-#if INT_ARITHMETIC
 			try {
+#if INT_ARITHMETIC
 			z3::expr realTemp = to_expr(z3_ctx, Z3_mk_int2real(z3_ctx, src));
 
 #else
@@ -364,11 +361,6 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 				res = z3::ite(src, z3_ctx.bv_val(1, BIT_WIDTH), z3_ctx.bv_val(0, BIT_WIDTH));
 #endif
 //				res = z3::ite(src, z3_ctx.bool_val(true), z3_ctx.bool_val(false));
-//				if (Z3_TRUE == Z3_algebraic_is_zero(z3_ctx, src)) {
-//					res = z3_ctx.bool_val(false);
-//				} else {
-//					res = z3_ctx.bool_val(true);
-//				}
 //				res = z3::ite(
 //						z3::to_expr(z3_ctx, Z3_mk_extract(z3_ctx, 0, 0, src)),
 //						z3_ctx.bool_val(true), z3_ctx.bool_val(false));
@@ -625,7 +617,7 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 						z3::expr tempRes = z3::to_expr(z3_ctx, Z3_mk_bvor(z3_ctx, tempLeft, tempRight));
 						res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
 					} else {
-						res = left && right;
+						res = left || right;
 					}
 				} catch(z3::exception &ex) {
 					std::cerr << "Or exception : " << ex << std::endl;
@@ -651,11 +643,11 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 //					left.get_sort() == right.get_sort()
 //							&& "sort between left and right are different in Expr::Xor\n");
 			try {
-			if (left.is_bv()) {
-				res = z3::to_expr(z3_ctx, Z3_mk_bvxor(z3_ctx, left, right));
-			} else {
-				res = z3::to_expr(z3_ctx, Z3_mk_xor(z3_ctx, left, right));
-			}
+				if (left.is_bv()) {
+					res = z3::to_expr(z3_ctx, Z3_mk_bvxor(z3_ctx, left, right));
+				} else {
+					res = z3::to_expr(z3_ctx, Z3_mk_xor(z3_ctx, left, right));
+				}
 			} catch(z3::exception &ex) {
 				std::cerr << "Xor exception : " << ex << std::endl;
 			}
@@ -682,8 +674,8 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 			std::cerr << "Shl exception : " << ex << std::endl;
 		}
 #else
-		z3::expr tempRes = z3::to_expr(z3_ctx, Z3_mk_bvshl(z3_ctx, left, right));
-		res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
+		res = z3::to_expr(z3_ctx, Z3_mk_bvshl(z3_ctx, left, right));
+//		res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
 #endif
 
 
@@ -707,8 +699,8 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 			std::cerr << "LShr exception : " << ex << std::endl;
 		}
 #else
-		z3::expr tempRes = z3::to_expr(z3_ctx, Z3_mk_bvlshr(z3_ctx, left, right));
-		res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
+		res = z3::to_expr(z3_ctx, Z3_mk_bvlshr(z3_ctx, left, right));
+//		res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
 #endif
 
 		return res;
@@ -732,8 +724,8 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 			std::cerr << "AShr exception : " << ex << std::endl;
 		}
 #else
-		z3::expr tempRes = z3::to_expr(z3_ctx, Z3_mk_bvashr(z3_ctx, left, right));
-		res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
+		res = z3::to_expr(z3_ctx, Z3_mk_bvashr(z3_ctx, left, right));
+//		res = z3::to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, tempRes, true));
 #endif
 
 		return res;

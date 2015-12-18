@@ -638,7 +638,7 @@ void Encode::getAltSequence(vector<struct Pair> &altSequence,
 		}
 
 	}
-	addBrConstraint(localize.event1.event);
+//	addBrConstraint(localize.event1.event);
 	expr event1Expr = z3_ctx.int_const(localize.event1.event->eventName.c_str());
 	expr event2Expr = z3_ctx.int_const(localize.event2.event->eventName.c_str());
 	z3_solver.add((event1Expr > event2Expr));
@@ -1053,11 +1053,12 @@ void Encode::raceFromCandidate(vector<struct racePair> &raceCandidate)
 		//add br constraint before the two race insts.
 //		addBrConstraint(raceCandidate[i].event1.event);
 //		std::cerr << "add constraint br1\n";
-
+		addBrConstraint(raceCandidate[i].event1.event);
 //		std::cerr << "add constraint br2\n";
+		addBrConstraint(raceCandidate[i].event2.event);
 		z3_solver.push();
 //		std::cerr << "push two\n";
-		addBrConstraint(raceCandidate[i].event2.event);
+//		addBrConstraint(raceCandidate[i].event2.event);
 		z3_solver.add( (event1Expr <= event2Expr) );
 //		std::cerr << "add constraint of event\n";
 
@@ -1207,7 +1208,7 @@ void Encode::buildRaceTrace()
 			if (event->isGlobal) {
 				Event *preEvent = NULL;
 				Event *postEvent = NULL;
-				event->inst->inst->dump();
+//				event->inst->inst->dump();
 				struct globalEvent globalTemp;
 
 				globalTemp.event = event;
@@ -1269,20 +1270,20 @@ void Encode::addBrConstraint(Event * event)
 		z3_solver.add(constraint);
 	}
 	//added assert formula cause long time solving.
-	for (unsigned i = 0; i < assertFormula.size(); i++) {
-//		std::cerr << ifFormula[i].second << std::endl;
-		Event* temp = assertFormula[i].first;
-		expr tempExpr = z3_ctx.int_const(temp->eventName.c_str());
-		expr constraint = z3_ctx.bool_val(true);
-		if (temp->threadId == event->threadId) {
-			if (event->eventId > temp->eventId) {
-				constraint = assertFormula[i].second;
-			}
-		} else {
-			constraint = implies(tempExpr < eventExpr, assertFormula[i].second);
-		}
-		z3_solver.add(constraint);
-	}
+//	for (unsigned i = 0; i < assertFormula.size(); i++) {
+////		std::cerr << ifFormula[i].second << std::endl;
+//		Event* temp = assertFormula[i].first;
+//		expr tempExpr = z3_ctx.int_const(temp->eventName.c_str());
+//		expr constraint = z3_ctx.bool_val(true);
+//		if (temp->threadId == event->threadId) {
+//			if (event->eventId > temp->eventId) {
+//				constraint = assertFormula[i].second;
+//			}
+//		} else {
+//			constraint = implies(tempExpr < eventExpr, assertFormula[i].second);
+//		}
+//		z3_solver.add(constraint);
+//	}
 }
 
 
