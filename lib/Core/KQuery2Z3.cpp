@@ -350,7 +350,7 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 
 #else
 			z3::expr temp = to_expr(z3_ctx, Z3_mk_bv2int(z3_ctx, src, true));
-			z3::expr realTemp = to_expr(z3_ctx, Z3_mk_int2real(z3_ctx, src));
+			z3::expr realTemp = to_expr(z3_ctx, Z3_mk_int2real(z3_ctx, temp));
 #endif
 			res = realTemp;
 			} catch (z3::exception &ex) {
