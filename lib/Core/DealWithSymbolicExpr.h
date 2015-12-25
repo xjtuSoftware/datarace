@@ -16,7 +16,7 @@ class DealWithSymbolicExpr {
 
 private:
 
-	void resolveSymbolicExpr(ref<Expr> value, std::set<std::string>* relatedSymbolicExpr);
+
 	void resolveGlobalVarName(ref<Expr> value);
 	std::set<std::string> allRelatedSymbolicExpr;
 	void resolveSymbolicExpr(ref<klee::Expr> value);
@@ -37,6 +37,8 @@ public:
 	void getUsefulLockPair(Trace* trace);
 	void copyCollectedDataOfTrace(Trace* trace);
 	void getPathCondition(Trace* trace);
+
+	void resolveSymbolicExpr(ref<Expr> value, std::set<std::string>& relatedSymbolicExpr);
 
 };
 

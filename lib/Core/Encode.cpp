@@ -577,7 +577,7 @@ void Encode::getAltSequence(vector<struct Pair> &altSequence,
 //		model m = z3_solver.get_model();
 
 	z3_solver.push();
-
+	addBrConstraints(localize.event2.event, localize.event1.event);
 
 	for (vector<struct Pair>::size_type index1 = 0; index1 < altLen; index1++) {
 		if (altSequence[index1].order < op.lower) {
@@ -1053,12 +1053,13 @@ void Encode::raceFromCandidate(vector<struct racePair> &raceCandidate)
 		//add br constraint before the two race insts.
 //		addBrConstraint(raceCandidate[i].event1.event);
 //		std::cerr << "add constraint br1\n";
-		addBrConstraint(raceCandidate[i].event1.event);
-//		std::cerr << "add constraint br2\n";
-		addBrConstraint(raceCandidate[i].event2.event);
+//		addBrConstraint(raceCandidate[i].event1.event);
+////		std::cerr << "add constraint br2\n";
+//		addBrConstraint(raceCandidate[i].event2.event);
 		z3_solver.push();
 //		std::cerr << "push two\n";
 //		addBrConstraint(raceCandidate[i].event2.event);
+		addBrConstraints(raceCandidate[i].event1.event, raceCandidate[i].event2.event);
 		z3_solver.add( (event1Expr <= event2Expr) );
 //		std::cerr << "add constraint of event\n";
 
@@ -1250,6 +1251,49 @@ void Encode::getPossibleRaceTrace()
 	buildRaceTraceFromLockSet();
 //	buildRaceTrace();
 }
+
+
+void Encode::addBrConstraints(Event *event1, Event *event2)
+{
+	//the order of event1 and event2 is event1 execute before event2
+	assert(event1->varName == event2->varName && "can not make race happen\n");
+	expr event1Expr = z3_ctx.int_const(event1->eventName.c_str());
+	expr event2Expr = z3_ctx.int_const(event2->eventName.c_str());
+	expr eventExpr = z3_ctx.bool_val(true);
+	eventExpr = event1Expr;
+
+	for (unsigned i = 0; i < ifFormula.size(); i++) {
+		Event *temp = ifFormula[i].first;
+		expr tempExpr = z3_ctx.int_const(temp->eventName.c_str());
+		expr constraint = z3_ctx.bool_val(true);
+		std::set<std::string> &tempSet = temp->brRelatedVarName;
+
+//		std::set<std::string>::iterator it = tempSet.begin(), ie = tempSet.end();
+//		std::cerr << "br related varName:\n";
+//		for (; it!= ie; it++) {
+//			std::cerr << *it << "\n";
+//		}
+		if (tempSet.find(event1->varName) != tempSet.end()) {
+			if (temp->threadId == event1->threadId || temp->threadId == event2->threadId) {
+				if (temp->threadId == event1->threadId) {
+					if (event1->eventId > temp->eventId) {
+						constraint = ifFormula[i].second;
+					}
+				} else {
+					if (event2->eventId > temp->eventId) {
+						constraint = ifFormula[i].second;
+					}
+				}
+			} else {
+				constraint = implies(tempExpr < eventExpr, ifFormula[i].second);
+			}
+		} else {
+			constraint = ifFormula[i].second;
+		}
+	}
+}
+
+
 
 void Encode::addBrConstraint(Event * event)
 {

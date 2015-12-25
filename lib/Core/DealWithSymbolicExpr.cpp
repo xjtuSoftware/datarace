@@ -57,11 +57,11 @@ std::string DealWithSymbolicExpr::getFullName(ref<klee::Expr> value) {
 }
 
 void DealWithSymbolicExpr::resolveSymbolicExpr(ref<klee::Expr> value,
-		std::set<std::string>* relatedSymbolicExpr) {
+		std::set<std::string>& relatedSymbolicExpr) {
 	if (value->getKind() == Expr::Read) {
 		std::string varName = getVarName(value);
-		if (relatedSymbolicExpr->find(varName) == relatedSymbolicExpr->end()) {
-			relatedSymbolicExpr->insert(varName);
+		if (relatedSymbolicExpr.find(varName) == relatedSymbolicExpr.end()) {
+			relatedSymbolicExpr.insert(varName);
 		}
 		return;
 	} else {

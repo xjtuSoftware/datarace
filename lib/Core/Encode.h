@@ -103,6 +103,8 @@ public:
 	void computeTrimedRaceTrace(vector<struct racePair> &raceCandidate);
 	int getTotalInstOfTrace();
 
+	void addBrConstraints(Event*, Event*);
+
 
 private:
 

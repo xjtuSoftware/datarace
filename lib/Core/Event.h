@@ -82,6 +82,10 @@ public:
 	std::string preEventName;
 	std::string postEventName;
 
+	bool isBrEvent;
+	ref<klee::Expr> brExpr;
+	std::set<std::string> brRelatedVarName;
+
 
 	//2015.7.8 hy
 //	bool isArg;

@@ -1347,8 +1347,8 @@ void PSOListener::handleExternalFunction(ExecutionState& state,
 					std::cerr << "harmful race printf\n";
 					std::cerr << "vecOutFiles : " << vecOutRes[i - 2] <<
 							", tmpStr = " << tmpStr << std::endl;
-					std::cerr << "last event : " << lastEvent->eventId << std::endl;
-					lastEvent->inst->inst->dump();
+//					std::cerr << "last event : " << lastEvent->eventId << std::endl;
+//					lastEvent->inst->inst->dump();
 					executor->raceCategory = Executor::HarmfulRace;
 //					executor->terminateState(state);
 					break;
@@ -1978,6 +1978,10 @@ void PSOListener::beforeSymbolicRun(ExecutionState &state, KInstruction *ki) {
 //						cerr << "br constraint : " << constraint << "\n";
 						trace->brSymbolicExpr.push_back(constraint);
 						trace->brEvent.push_back((*currentEvent));
+
+						filter.resolveSymbolicExpr(constraint, (*currentEvent)->brRelatedVarName);
+						(*currentEvent)->isBrEvent = true;
+						(*currentEvent)->brExpr = constraint;
 					}
 					executor->evalAgainst(ki, 0, thread, value2);
 				}
@@ -2075,6 +2079,10 @@ void PSOListener::beforeSymbolicRun(ExecutionState &state, KInstruction *ki) {
 //					cerr << "constraint : " << constraint << "\n";
 					trace->brSymbolicExpr.push_back(constraint);
 					trace->brEvent.push_back((*currentEvent));
+
+					filter.resolveSymbolicExpr(constraint, (*currentEvent)->brRelatedVarName);
+					(*currentEvent)->isBrEvent = true;
+					(*currentEvent)->brExpr = constraint;
 				} else {
 					if (index != *first) {
 						assert(0 && "index != first");
@@ -2097,6 +2105,10 @@ void PSOListener::beforeSymbolicRun(ExecutionState &state, KInstruction *ki) {
 				ref<Expr> constraint = EqExpr::create(cond1, cond2);
 				trace->brSymbolicExpr.push_back(constraint);
 				trace->brEvent.push_back((*currentEvent));
+
+				filter.resolveSymbolicExpr(constraint, (*currentEvent)->brRelatedVarName);
+				(*currentEvent)->isBrEvent = true;
+				(*currentEvent)->brExpr = constraint;
 				executor->evalAgainst(ki, 0, thread, cond2);
 			}
 			break;
@@ -2173,6 +2185,15 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 						case Trace::Exclusive:
 							if (temp->firstWrThreadId != (int)(*currentEvent)->threadId) {
 								temp->globalVarState = Trace::Shared;
+
+								bool flag = trace->computeIntersect(temp->candidateLock,
+									trace->locksHelds[(*currentEvent)->threadId]);
+								if (flag) {
+									trace->raceCandidateVar.insert((*currentEvent)->varName);
+									trace->raceCandidateEventName.insert((*currentEvent)->eventId);
+	//								std::cerr << "Load Inst: a data race could happen on var " <<
+	//										(*currentEvent)->varName << ", eventName = " << (*currentEvent)->eventName << std::endl;
+								}
 							}
 							break;
 						case Trace::Shared:
