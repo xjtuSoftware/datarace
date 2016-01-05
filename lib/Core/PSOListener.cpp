@@ -1347,6 +1347,7 @@ void PSOListener::handleExternalFunction(ExecutionState& state,
 					std::cerr << "harmful race printf\n";
 					std::cerr << "vecOutFiles : " << vecOutRes[i - 2] <<
 							", tmpStr = " << tmpStr << std::endl;
+					state.prefix->getCurrentInst()->inst->dump();
 //					std::cerr << "last event : " << lastEvent->eventId << std::endl;
 //					lastEvent->inst->inst->dump();
 					executor->raceCategory = Executor::HarmfulRace;
@@ -1381,6 +1382,7 @@ void PSOListener::handleExternalFunction(ExecutionState& state,
 //				}
 				if (vecOutToFile[i - 3] != tmpStr) {
 					std::cerr << "race harmful sprintf\n";
+					state.prefix->getCurrentInst()->inst->dump();
 					executor->raceCategory = Executor::HarmfulRace;
 //					executor->terminateState(state);
 					break;

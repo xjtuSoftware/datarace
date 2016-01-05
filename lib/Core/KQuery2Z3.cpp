@@ -711,7 +711,7 @@ z3::expr KQuery2Z3::eachExprToZ3(ref<Expr> &ele) {
 	}
 
 	case Expr::AShr: {
-		std::cerr << "before AShr\n";
+//		std::cerr << "before AShr\n";
 		AShrExpr * ase = cast<AShrExpr>(ele);
 		z3::expr left = eachExprToZ3(ase->left);
 		z3::expr right = eachExprToZ3(ase->right);

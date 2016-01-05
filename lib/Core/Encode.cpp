@@ -1290,6 +1290,7 @@ void Encode::addBrConstraints(Event *event1, Event *event2)
 		} else {
 			constraint = ifFormula[i].second;
 		}
+		z3_solver.add(constraint);
 	}
 }
 
