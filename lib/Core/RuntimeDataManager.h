@@ -48,6 +48,10 @@ public:
 	bool isCurrentTraceUntested();
 	void printAllPrefix(std::ostream &out);
 	void printAllTrace(std::ostream &out);
+
+	std::set<std::pair<unsigned, unsigned> > linepair;
+	std::set<std::string> raceVarName;
+	std::set<std::pair<std::string, std::string> > eventPair;
 };
 
 }

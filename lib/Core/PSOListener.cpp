@@ -43,6 +43,7 @@ using namespace llvm;
 #define DEBUGSTRCPY 0
 #define DEBUGSYMBOLIC 0
 #define COND_DEBUG 0
+#define LINE_DEBUG 1
 bool isPrefixFinished = false;
 
 
@@ -988,9 +989,10 @@ void PSOListener::afterRunMethodAsMain() {
 				trace->global_variable_initializer.begin(), ie = trace->global_variable_initializer.end();
 				it != ie; it++) {
 				lsds.globalVarName = it->first;
-				lsds.globalVarState = Trace::Virgin;
+				std::cerr << "initial global var : " << it->first << std::endl;
+				lsds.globalVarState = Trace::Exclusive;
 				lsds.candidateLock.insert(allLocks.begin(), allLocks.end());
-				lsds.firstWrThreadId = -1;
+				lsds.firstWrThreadId = 1;
 				trace->allCandidate.push_back(lsds);
 			}
 		}
@@ -1021,6 +1023,38 @@ void PSOListener::afterRunMethodAsMain() {
 //		encode.buildAllFormula();
 		//call for build race formula
 		encode.getPossibleRaceTrace();
+#if LINE_DEBUG
+		if (executor->executionNum == 0) {
+			encode.showInitTrace();
+			std::cerr << "this exe more then once\n";
+			string ErrorInfo;
+			raw_fd_ostream out_to_file("./output_info/linePair.txt", ErrorInfo, 0x0202);
+			stringstream ss;
+			std::set<std::pair<unsigned, unsigned> >::size_type value = rdManager.linepair.size();
+			ss << "all pair size = " << value << "\n";
+			out_to_file << ss.str();
+			ss.clear();
+			std::set<std::pair<unsigned, unsigned> >::iterator it =
+					rdManager.linepair.begin(), ie = rdManager.linepair.end();
+			for (; it != ie; it++) {
+				ss << it->first << " " << it->second << "\n";
+				out_to_file << ss.str();
+				ss.clear();
+			}
+			ss << "the number of race variable is " << rdManager.raceVarName.size() << "\n";
+			out_to_file << ss.str();
+			ss.clear();
+			std::set<std::pair<std::string, std::string> >::iterator itP =
+					rdManager.eventPair.begin(), ieP = rdManager.eventPair.end();
+			for (; itP != ieP; itP++) {
+				ss << itP->first << " " << itP->second << "\n";
+				out_to_file << ss.str();
+				ss.clear();
+			}
+			out_to_file.close();
+		}
+#endif
+
 #if EVENTS_DEBUG
 		//true: output to file; false: output to terminal
 		rdManager.printCurrentTrace(true);
@@ -1347,7 +1381,7 @@ void PSOListener::handleExternalFunction(ExecutionState& state,
 					std::cerr << "harmful race printf\n";
 					std::cerr << "vecOutFiles : " << vecOutRes[i - 2] <<
 							", tmpStr = " << tmpStr << std::endl;
-					state.prefix->getCurrentInst()->inst->dump();
+//					state.prefix->getCurrentInst()->inst->dump();
 //					std::cerr << "last event : " << lastEvent->eventId << std::endl;
 //					lastEvent->inst->inst->dump();
 					executor->raceCategory = Executor::HarmfulRace;
@@ -1382,7 +1416,7 @@ void PSOListener::handleExternalFunction(ExecutionState& state,
 //				}
 				if (vecOutToFile[i - 3] != tmpStr) {
 					std::cerr << "race harmful sprintf\n";
-					state.prefix->getCurrentInst()->inst->dump();
+//					state.prefix->getCurrentInst()->inst->dump();
 					executor->raceCategory = Executor::HarmfulRace;
 //					executor->terminateState(state);
 					break;
@@ -2170,9 +2204,10 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 //						std::cerr << "Load: allLocks size = " <<
 //								allLocks.size() << std::endl;
 						Trace::LockSetDateStruct lsds;
-						lsds.firstWrThreadId = -1;
+						lsds.firstWrThreadId = (*currentEvent)->threadId;
 						lsds.globalVarName = (*currentEvent)->varName;
-						lsds.globalVarState = Trace::Virgin;
+						std::cerr << "Load insert var : " << (*currentEvent)->varName << std::endl;
+						lsds.globalVarState = Trace::Exclusive;
 						lsds.candidateLock.insert(allLocks.begin(), allLocks.end());
 //						std::cerr << "Load: candidateLock size = " <<
 //								trace->allCandidate.size() << std::endl;
@@ -2181,14 +2216,18 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 //								trace->allCandidate.size() << std::endl;
 					} else {
 //					if (temp != trace->allCandidate.end()) {
+						std::cerr << "Load var name : " << (*currentEvent)->varName <<
+								"and state : " << temp->globalVarState << std::endl;
+						bool flag = false;
 						switch (temp->globalVarState) {
 						case Trace::Virgin:
+							temp->firstWrThreadId = (*currentEvent)->threadId;
 							break;
 						case Trace::Exclusive:
-							if (temp->firstWrThreadId != (int)(*currentEvent)->threadId) {
+							if (temp->firstWrThreadId != (*currentEvent)->threadId) {
 								temp->globalVarState = Trace::Shared;
 
-								bool flag = trace->computeIntersect(temp->candidateLock,
+								flag = trace->computeIntersect(temp->candidateLock,
 									trace->locksHelds[(*currentEvent)->threadId]);
 								if (flag) {
 									trace->raceCandidateVar.insert((*currentEvent)->varName);
@@ -2209,7 +2248,7 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 //										(*currentEvent)->varName << ", eventName = " << (*currentEvent)->eventName << std::endl;
 //							} else {
 
-							bool flag = trace->computeIntersect(temp->candidateLock,
+							flag = trace->computeIntersect(temp->candidateLock,
 									trace->locksHelds[(*currentEvent)->threadId]);
 							if (flag) {
 								trace->raceCandidateVar.insert((*currentEvent)->varName);
@@ -2295,6 +2334,7 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 						Trace::LockSetDateStruct lsds;
 						lsds.firstWrThreadId = (*currentEvent)->threadId;
 						lsds.globalVarName = (*currentEvent)->varName;
+						std::cerr << "Store insert var : " << (*currentEvent)->varName << std::endl;
 						lsds.globalVarState = Trace::Exclusive;
 						lsds.candidateLock.insert(allLocks.begin(), allLocks.end());
 //						std::cerr << "Store: candidateLock size = " <<
@@ -2304,15 +2344,26 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 //								trace->allCandidate.size() << std::endl;
 					} else {
 //					if (temp != trace->allCandidate.end()) {
+						std::cerr << "Store var name : " << (*currentEvent)->varName <<
+								"and state : " << temp->globalVarState << std::endl;
 						bool flag = false;
 						switch (temp->globalVarState) {
 						case Trace::Virgin:
 							temp->globalVarState = Trace::Exclusive;
-							temp->firstWrThreadId = (*currentEvent)->threadId;
+//							temp->firstWrThreadId = (*currentEvent)->threadId;
 							break;
 						case Trace::Exclusive:
-							if (temp->firstWrThreadId != (int)(*currentEvent)->threadId) {
+							if (temp->firstWrThreadId != (*currentEvent)->threadId) {
 								temp->globalVarState = Trace::Shared_Modified;
+
+								flag = trace->computeIntersect(temp->candidateLock,
+									trace->locksHelds[(*currentEvent)->threadId]);
+								if (flag) {
+									trace->raceCandidateVar.insert((*currentEvent)->varName);
+									trace->raceCandidateEventName.insert((*currentEvent)->eventId);
+	//								std::cerr << "Load Inst: a data race could happen on var " <<
+	//										(*currentEvent)->varName << ", eventName = " << (*currentEvent)->eventName << std::endl;
+								}
 							}
 							break;
 						case Trace::Shared:
@@ -2345,6 +2396,7 @@ void PSOListener::afterSymbolicRun(ExecutionState &state, KInstruction *ki) {
 					}
 
 				}
+
 			}
 			break;
 		}

@@ -59,7 +59,7 @@ public:
 		std::string globalVarName;
 		std::set<std::string> candidateLock;
 		GlobalVarState globalVarState;
-		int firstWrThreadId;
+		unsigned firstWrThreadId;
 	};
 
 	unsigned Id;

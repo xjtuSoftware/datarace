@@ -214,7 +214,15 @@ void Encode::getRaceCandidate(vector<struct globalEvent> &readGlobalSet,
 			}
 		}
 	}
+	vector<struct racePair>::iterator rit =
+			raceCandidate.begin(), rie = raceCandidate.end();
+	for (; rit != rie; rit++) {
+		if ((*rit).event1.event->threadId == (*rit).event2.event->threadId) {
+			std::cerr << "FUCK>>>>>>>>>>>>>>>\n";
+		}
+	}
 	raceFromCandidate(raceCandidate);
+
 //	computeTrimedRaceTrace(raceCandidate);
 }
 
@@ -356,7 +364,7 @@ void Encode::computeTrimedRaceTrace(vector<struct racePair> &raceCandidate)
 		z3_solver.push();
 		z3_solver.add( (temp1 && temp2) );
 		buildReadWriteFormula();
-		makePreEventConcrete(raceCandidate[i].event1.event, raceCandidate[i].event2.event);
+//		makePreEventConcrete(raceCandidate[i].event1.event, raceCandidate[i].event2.event);
 //		makeUnrelatedConcrete(event1->varName, event1);
 		//add br constraint before the two race insts.
 //		addBrConstraint(raceCandidate[i].event1.event);
@@ -673,10 +681,27 @@ void Encode::getAltSequence(vector<struct Pair> &altSequence,
 					nextSequence.push_back(temp);
 				}
 		}
+		unsigned firstLine = localize.event1.event->inst->info->line;
+		unsigned secondLine = localize.event2.event->inst->info->line;
+		if (firstLine > secondLine) {
+			unsigned temp = firstLine;
+			firstLine = secondLine;
+			secondLine = temp;
+		}
+		pair<unsigned, unsigned> p = make_pair(firstLine, secondLine);
+		runtimeData.linepair.insert(p);
 		raceHappen = true;
 		std::cerr << "one pair race detected!\n";
 		std::cerr << "dataRace " << localize.event1.event->eventName <<
 				" " << localize.event2.event->eventName << "\n";
+		std::cerr << "event1 var Name = " << localize.event1.event->varName << " " <<
+				localize.event2.event->varName << std::endl;
+		std::cerr << localize.event1.event->inst->info->line << " " <<
+				localize.event2.event->inst->info->line << std::endl;
+		runtimeData.raceVarName.insert(localize.event1.event->varName);
+		runtimeData.raceVarName.insert(localize.event2.event->varName);
+		runtimeData.eventPair.insert(make_pair(
+				localize.event1.event->eventName,localize.event2.event->eventName));
 	}else if (result == z3::unsat) {
 		cerr << "there is no data race!\n";
 	} else {
@@ -780,6 +805,20 @@ void Encode::exchangeUnderEqual(vector<struct Pair> &altSequence, struct racePai
 								ss.str());
 	prefix->setRacePos((int)vecEvent[secondPos]->eventId);
 	showPrefixInfo(prefix, 0);
+
+	unsigned firstLine = localize.event1.event->inst->info->line;
+	unsigned secondLine = localize.event2.event->inst->info->line;
+	if (firstLine > secondLine) {
+		unsigned temp = firstLine;
+		firstLine = secondLine;
+		secondLine = temp;
+	}
+	pair<unsigned, unsigned> p = make_pair(firstLine, secondLine);
+	runtimeData.linepair.insert(p);
+	runtimeData.raceVarName.insert(localize.event1.event->varName);
+	runtimeData.raceVarName.insert(localize.event2.event->varName);
+	runtimeData.eventPair.insert(make_pair(
+			localize.event1.event->eventName,localize.event2.event->eventName));
 #if FORMULA_DEBUG
 	stringstream output;
 	output << "./output_info/" << prefix->getName() << ".z3expr";
@@ -1066,7 +1105,7 @@ void Encode::raceFromCandidate(vector<struct racePair> &raceCandidate)
 //		std::cerr << z3_solver << std::endl;
 		check_result result = z3_solver.check();
 		std::cerr << "interleaving events: event1 Name =  " << event1->eventName <<
-				" event1 Name = " << event2->eventName << "\n";
+				" event2 Name = " << event2->eventName << "\n";
 //		std::cerr << z3_solver << std::endl;
 		std::cerr << "checking ...\n";
 		if (result == z3::sat) {
@@ -1174,10 +1213,12 @@ void Encode::buildRaceTraceFromLockSet() {
 						}
 					}
 					globalTemp.postEvent = postEvent;
-					if (event->inst->inst->getOpcode() == Instruction::Store) {
+					if (event->inst->inst->getOpcode() == Instruction::Store &&
+							!event->inst->inst->getType()->isPointerTy()) {
 						writeGlobalSet.push_back(globalTemp);
 					}
-					if (event->inst->inst->getOpcode() == Instruction::Load) {
+					if (event->inst->inst->getOpcode() == Instruction::Load &&
+							!event->inst->inst->getType()->isPointerTy()) {
 						readGlobalSet.push_back(globalTemp);
 					}
 				}
@@ -1192,6 +1233,7 @@ void Encode::buildRaceTraceFromLockSet() {
 
 void Encode::buildRaceTrace()
 {
+	trace->print(true);
 	vector<struct globalEvent> readGlobalSet;
 	vector<struct globalEvent> writeGlobalSet;
 
@@ -1227,10 +1269,12 @@ void Encode::buildRaceTrace()
 						}
 				}
 				globalTemp.postEvent = postEvent;
-				if (event->inst->inst->getOpcode() == Instruction::Store) {
+				if (event->inst->inst->getOpcode() == Instruction::Store &&
+						!event->inst->inst->getType()->isPointerTy()) {
 					writeGlobalSet.push_back(globalTemp);
 				}
-				if (event->inst->inst->getOpcode() == Instruction::Load) {
+				if (event->inst->inst->getOpcode() == Instruction::Load &&
+						!event->inst->inst->getType()->isPointerTy()) {
 					readGlobalSet.push_back(globalTemp);
 				}
 			}
@@ -1248,8 +1292,8 @@ void Encode::getPossibleRaceTrace()
 //	buildRaceFormula();
 //	addBrConstraint();
 	buildPartialRaceFormula();
-	buildRaceTraceFromLockSet();
-//	buildRaceTrace();
+//	buildRaceTraceFromLockSet();
+	buildRaceTrace();
 }
 
 
